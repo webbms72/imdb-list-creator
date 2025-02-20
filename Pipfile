@@ -5,9 +5,9 @@ name = "pypi"
 
 [packages]
 imdbpy = "*"
-tmdbsimple = "*"
 pandas = "*"
 requests = "*"
+tmdb3 = "*"
 
 [dev-packages]
 
