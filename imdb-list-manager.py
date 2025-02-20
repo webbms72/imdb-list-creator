@@ -1,6 +1,8 @@
 import pandas as pd
 import imdb
 import time
+import argparse
+
 
 def create_or_update_imdb_list(csv_filepath, list_name="My Movie List", dry_run=True):
     """
@@ -19,7 +21,7 @@ def create_or_update_imdb_list(csv_filepath, list_name="My Movie List", dry_run=
         movie_titles = df['title'].tolist()
 
         # 2. Initialize IMDb API
-        ia = imdb.Cinemetiq()
+        ia = imdb.IMDb()
 
         if not dry_run:  # Only get user and lists if not a dry run
             user = ia.get_current_user()
@@ -82,8 +84,12 @@ def create_or_update_imdb_list(csv_filepath, list_name="My Movie List", dry_run=
 
 
 # Example usage (dry run):
-csv_file = "movie_list.csv"
-create_or_update_imdb_list(csv_file, "My Awesome Movie Collection", dry_run=True)  # Set dry_run to True
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Manage IMDb lists from a CSV file.")
+    parser.add_argument("csv_file", help="Path to the CSV file containing movie titles.")
+    parser.add_argument("list_name", nargs="?", default="My Movie List", help="Name of the IMDb list (default: My Movie List).")
+    parser.add_argument("-d", "--dry-run", action="store_true", help="Perform a dry run (display actions without modifying IMDb).")
 
-# Example usage (actual update):
-# create_or_update_imdb_list(csv_file, "My Awesome Movie Collection", dry_run=False)  # Set dry_run to False for real update
+    args = parser.parse_args()
+
+    create_or_update_imdb_list(args.csv_file, args.list_name, dry_run=args.dry_run)
