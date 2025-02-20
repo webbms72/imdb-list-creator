@@ -7,7 +7,7 @@ name = "pypi"
 imdbpy = "*"
 pandas = "*"
 requests = "*"
-tmdb3 = "*"
+themoviedb = "*"
 
 [dev-packages]
 

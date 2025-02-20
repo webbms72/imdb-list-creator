@@ -1,56 +1,47 @@
 import pandas as pd
-import tmdb3
+import themoviedb
 import argparse
 import time
 import webbrowser
 import os
 
 def create_or_update_tmdb_list(csv_filepath, list_name, api_key, dry_run=True):
-    tmdb3.api_key = api_key
+    themoviedb.API_KEY = api_key
 
     try:
-        # --- TMDb Authentication (Corrected and Simplified) ---
-        session_id = os.environ.get("TMDB_SESSION_ID")
-
-        if session_id is None:
-            auth = tmdb3.Authentication()
-            request_token = auth.request_token.request_token
-            authorization_url = f"https://www.themoviedb.org/authenticate/{request_token}"
-            webbrowser.open_new_tab(authorization_url)
-            print(f"Please authorize at: {authorization_url}")
-            print("After authorizing, press Enter to continue...")
-            input()
-            session = auth.create_session(request_token=request_token)
-            session_id = session.session_id
-
-            os.environ["TMDB_SESSION_ID"] = session_id
-            print(f"Session ID stored in environment variable.")
-
-        tmdb3.session_id = session_id  # Set the session ID globally
+        # --- TMDb Authentication (Corrected and Simplified with themoviedb) ---
+        # themoviedb handles session automatically
 
         # ... (Rest of the code for list management)
         df = pd.read_csv(csv_filepath)
         movie_titles = df['title'].tolist()
 
-        account = tmdb3.Account()
-        account_id = account.id
+        # Corrected: Instantiate Account object
+        account = themoviedb.Account()  # Instantiate Account
+        account_details = account.get_account_details() # Correct call
+        account_id = account_details['id']
 
-        lists = account.lists()  # Get all lists
+        lists_response = account.get_movie_lists()
+        lists = lists_response['results']
+
         my_list = None
+        my_list_id = None
         for lst in lists:
-            if lst.name == list_name:
-                my_list = lst
+            if lst['name'] == list_name:
+                my_list_id = lst['id']
                 break
 
-        if my_list is None:
+        if my_list_id is None:
             if not dry_run:
-                my_list = account.create_list(name=list_name, description="List created by script")
-                print(f"Created new list: {list_name} (ID: {my_list.id})")
+                my_list = account.create_movie_list(name=list_name, description="List created by script")
+                my_list_id = my_list['id']
+                print(f"Created new list: {list_name} (ID: {my_list_id})")
         else:
-            print(f"Found existing list: {list_name} (ID: {my_list.id})")
+            print(f"Found existing list: {list_name} (ID: {my_list_id})")
 
         if not dry_run:
-            current_movies_in_list = [movie.title for movie in my_list.items]
+            list_details = account.get_movie_list(my_list_id)
+            current_movies_in_list = [item['title'] for item in list_details.get('items', []) if isinstance(item, dict) and 'title' in item]
         else:
             current_movies_in_list = []
 
@@ -58,23 +49,26 @@ def create_or_update_tmdb_list(csv_filepath, list_name, api_key, dry_run=True):
         movies_not_found = 0
         movies_already_in_list = 0
 
+        search = themoviedb.Search()
+
         for title in movie_titles:
             if title in current_movies_in_list:
                 movies_already_in_list += 1
                 print(f"(Dry Run) Movie already in list: {title}")
                 continue
 
-            results = tmdb3.searchMovie(title)  # Corrected: Use tmdb3.searchMovie() directly
-            if results:
-                movie = results[0]
+            search_results = search.movie(query=title)['results']
+
+            if search_results:
+                movie = search_results[0]
                 if dry_run:
-                    print(f"(Dry Run) Would add: {title} (TMDb ID: {movie.id})")
+                    print(f"(Dry Run) Would add: {title} (TMDb ID: {movie['id']})")
                     movies_added += 1
                 else:
                     try:
-                        my_list.add_movie(movie)
+                        account.add_movie_to_list(list_id=my_list_id, media_id=movie['id'])
                         movies_added += 1
-                        print(f"Added: {title} (TMDb ID: {movie.id})")
+                        print(f"Added: {title} (TMDb ID: {movie['id']})")
                         time.sleep(1)
                     except Exception as e:
                         print(f"Error adding {title}: {e}")
