@@ -4,12 +4,13 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-imdbpy = "*"
 pandas = "*"
-requests = "*"
-themoviedb = "*"
+tmdbsimple = "*"
 
 [dev-packages]
 
 [requires]
 python_version = "3.13"
+
+[pipenv]
+allow_prereleases = true
